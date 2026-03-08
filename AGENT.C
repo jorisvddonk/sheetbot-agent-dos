@@ -111,7 +111,7 @@ static int check_status(const char *status, const char *context) {
 
 /*
  * Run curl with -w "%{http_code}", pipe through splitst.
- * g_curl_args: everything after "curl -s -w \"%{http_code}\" "
+ * g_curl_args: everything after "curl -sk -w \"%{http_code}\" "
  * Reads status into g_status.
  */
 static int curl_split(const char *g_curl_args,
@@ -119,7 +119,7 @@ static int curl_split(const char *g_curl_args,
                       const char *status_file) {
     int rc;
     snprintf(g_cmd, CMD_MAX,
-             "curl -s -w \"%%{http_code}\" %s > RAW.TXT", g_curl_args);
+             "curl -sk -w \"%%{http_code}\" %s > RAW.TXT", g_curl_args);
     rc = run(g_cmd);
     if (rc != 0) return rc;
     snprintf(g_cmd, CMD_MAX, "splitst %s %s < RAW.TXT", body_file, status_file);
@@ -327,9 +327,9 @@ int main(void) {
     printf("Accepting task\n");
     snprintf(g_task_url, ENV_MAX, "%s/tasks/%s/accept", g_baseurl, g_task_id);
     if (g_auth_header[0] != '\0') {
-        snprintf(g_cmd, CMD_MAX, "curl -s -X POST \"%s\" -H \"Content-Type: application/json\" -H \"%s\" -d {} >NUL", g_task_url, g_auth_header);
+        snprintf(g_cmd, CMD_MAX, "curl -sk -X POST \"%s\" -H \"Content-Type: application/json\" -H \"%s\" -d {} >NUL", g_task_url, g_auth_header);
     } else {
-        snprintf(g_cmd, CMD_MAX, "curl -s -X POST \"%s\" -H \"Content-Type: application/json\" -d {} >NUL", g_task_url);
+        snprintf(g_cmd, CMD_MAX, "curl -sk -X POST \"%s\" -H \"Content-Type: application/json\" -d {} >NUL", g_task_url);
     }
     run(g_cmd);
     printf("Task accepted\n");
@@ -338,10 +338,10 @@ int main(void) {
     printf("Fetching script from: %s\n", g_script_url);
     if (g_auth_header[0] != '\0') {
         snprintf(g_cmd, CMD_MAX,
-                 "curl -s -H \"%s\" \"%s\" > TASK.BAT",
+                 "curl -sk -H \"%s\" \"%s\" > TASK.BAT",
                  g_auth_header, g_script_url);
     } else {
-        snprintf(g_cmd, CMD_MAX, "curl -s \"%s\" > TASK.BAT", g_script_url);
+        snprintf(g_cmd, CMD_MAX, "curl -sk \"%s\" > TASK.BAT", g_script_url);
     }
     run(g_cmd);
 
@@ -355,9 +355,9 @@ int main(void) {
         printf("Task script failed (exit %d), reporting failure\n", rc);
         snprintf(g_task_url, ENV_MAX, "%s/tasks/%s/failed", g_baseurl, g_task_id);
         if (g_auth_header[0] != '\0') {
-            snprintf(g_cmd, CMD_MAX, "curl -s -X POST \"%s\" -H \"Content-Type: application/json\" -H \"%s\" -d {} >NUL", g_task_url, g_auth_header);
+            snprintf(g_cmd, CMD_MAX, "curl -sk -X POST \"%s\" -H \"Content-Type: application/json\" -H \"%s\" -d {} >NUL", g_task_url, g_auth_header);
         } else {
-            snprintf(g_cmd, CMD_MAX, "curl -s -X POST \"%s\" -H \"Content-Type: application/json\" -d {} >NUL", g_task_url);
+            snprintf(g_cmd, CMD_MAX, "curl -sk -X POST \"%s\" -H \"Content-Type: application/json\" -d {} >NUL", g_task_url);
         }
         run(g_cmd);
         cleanup();
