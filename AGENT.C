@@ -114,18 +114,33 @@ static int check_status(const char *status, const char *context) {
  * g_curl_args: everything after "curl -sk -w \"%{http_code}\" "
  * Reads status into g_status.
  */
-static int curl_split(const char *g_curl_args,
+static int curl_split(const char *curl_args,
                       const char *body_file,
                       const char *status_file) {
     int rc;
     snprintf(g_cmd, CMD_MAX,
-             "curl -sk -w \"%%{http_code}\" %s > RAW.TXT", g_curl_args);
+             "curl -sk -w \"%%{http_code}\" %s > RAW.TXT", curl_args);
+    printf("Running: %s\n", g_cmd);
     rc = run(g_cmd);
-    if (rc != 0) return rc;
+    printf("curl exit code: %d\n", rc);
+    if (rc != 0) {
+        /* Print RAW.TXT if it exists - may contain curl error message */
+        FILE *f = fopen("RAW.TXT", "r");
+        if (f) {
+            char line[256];
+            printf("curl output:\n");
+            while (fgets(line, sizeof(line), f)) printf("  %s", line);
+            fclose(f);
+        }
+        return rc;
+    }
     snprintf(g_cmd, CMD_MAX, "splitst %s %s < RAW.TXT", body_file, status_file);
+    printf("Running: %s\n", g_cmd);
     rc = run(g_cmd);
+    printf("splitst exit code: %d\n", rc);
     if (rc != 0) return rc;
     read_token_from_file(status_file, g_status, sizeof(g_status));
+    printf("HTTP status: %s\n", g_status);
     return 0;
 }
 
@@ -228,11 +243,22 @@ int main(void) {
         snprintf(g_curl_args, CMD_MAX,
                  "-X POST \"%s/login\" -H \"Content-Type: application/json\" -d @LOGINREQ.JSON",
                  g_baseurl);
+        printf("Login URL: %s/login\n", g_baseurl);
+        printf("Login payload: ");
+        {
+            FILE *lf = fopen("LOGINREQ.JSON", "r");
+            if (lf) { char lb[256]; if (fgets(lb, sizeof(lb), lf)) printf("%s", lb); fclose(lf); }
+            printf("\n");
+        }
         if (curl_split(g_curl_args, "LOGINBODY.JSON", "LOGINSTATUS.TXT") != 0) {
             printf("Error: curl failed during login\n"); cleanup(); return 1;
         }
         printf("Auth status: %s\n", g_status);
-        if (check_status(g_status, "login") != 0) { cleanup(); return 1; }
+        if (check_status(g_status, "login") != 0) {
+            FILE *lf = fopen("LOGINBODY.JSON", "r");
+            if (lf) { char lb[512]; if (fgets(lb, sizeof(lb), lf)) printf("Response body: %s\n", lb); fclose(lf); }
+            cleanup(); return 1;
+        }
         run("jget token < LOGINBODY.JSON > TOKEN.TXT");
         read_token_from_file("TOKEN.TXT", g_token, TOKEN_MAX);
         if (g_token[0] == '\0') { printf("Error: no token in auth response\n"); cleanup(); return 1; }
@@ -247,11 +273,22 @@ int main(void) {
         snprintf(g_curl_args, CMD_MAX,
                  "-X POST \"%s/login\" -H \"Content-Type: application/json\" -d @LOGINREQ.JSON",
                  g_baseurl);
+        printf("Login URL: %s/login\n", g_baseurl);
+        printf("Login payload: ");
+        {
+            FILE *lf = fopen("LOGINREQ.JSON", "r");
+            if (lf) { char lb[256]; if (fgets(lb, sizeof(lb), lf)) printf("%s", lb); fclose(lf); }
+            printf("\n");
+        }
         if (curl_split(g_curl_args, "LOGINBODY.JSON", "LOGINSTATUS.TXT") != 0) {
             printf("Error: curl failed during login\n"); cleanup(); return 1;
         }
         printf("Auth status: %s\n", g_status);
-        if (check_status(g_status, "login") != 0) { cleanup(); return 1; }
+        if (check_status(g_status, "login") != 0) {
+            FILE *lf = fopen("LOGINBODY.JSON", "r");
+            if (lf) { char lb[512]; if (fgets(lb, sizeof(lb), lf)) printf("Response body: %s\n", lb); fclose(lf); }
+            cleanup(); return 1;
+        }
         run("jget token < LOGINBODY.JSON > TOKEN.TXT");
         read_token_from_file("TOKEN.TXT", g_token, TOKEN_MAX);
         if (g_token[0] == '\0') { printf("Error: no token in auth response\n"); cleanup(); return 1; }
