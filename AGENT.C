@@ -69,6 +69,7 @@ static char g_env_task_completeurl[ENV_MAX];
 static char g_env_task_failedurl[ENV_MAX];
 static char g_env_task_dataurl[ENV_MAX];
 static char g_auth_apikey[VAL_MAX];
+static char g_logbuf[512];   /* scratch buffer for logging - kept off stack */
 static char g_auth_user[VAL_MAX];
 static char g_auth_pass[VAL_MAX];
 static char g_sys_hostname[VAL_MAX];
@@ -127,9 +128,8 @@ static int curl_split(const char *curl_args,
         /* Print RAW.TXT if it exists - may contain curl error message */
         FILE *f = fopen("RAW.TXT", "r");
         if (f) {
-            char line[256];
             printf("curl output:\n");
-            while (fgets(line, sizeof(line), f)) printf("  %s", line);
+            while (fgets(g_logbuf, sizeof(g_logbuf), f)) printf("  %s", g_logbuf);
             fclose(f);
         }
         return rc;
@@ -247,7 +247,7 @@ int main(void) {
         printf("Login payload: ");
         {
             FILE *lf = fopen("LOGINREQ.JSON", "r");
-            if (lf) { char lb[256]; if (fgets(lb, sizeof(lb), lf)) printf("%s", lb); fclose(lf); }
+            if (lf) { if (fgets(g_logbuf, sizeof(g_logbuf), lf)) printf("%s", g_logbuf); fclose(lf); }
             printf("\n");
         }
         if (curl_split(g_curl_args, "LOGINBODY.JSON", "LOGINSTATUS.TXT") != 0) {
@@ -256,7 +256,7 @@ int main(void) {
         printf("Auth status: %s\n", g_status);
         if (check_status(g_status, "login") != 0) {
             FILE *lf = fopen("LOGINBODY.JSON", "r");
-            if (lf) { char lb[512]; if (fgets(lb, sizeof(lb), lf)) printf("Response body: %s\n", lb); fclose(lf); }
+            if (lf) { if (fgets(g_logbuf, sizeof(g_logbuf), lf)) printf("%s", g_logbuf); fclose(lf); }
             cleanup(); return 1;
         }
         run("jget token < LOGINBODY.JSON > TOKEN.TXT");
@@ -277,7 +277,7 @@ int main(void) {
         printf("Login payload: ");
         {
             FILE *lf = fopen("LOGINREQ.JSON", "r");
-            if (lf) { char lb[256]; if (fgets(lb, sizeof(lb), lf)) printf("%s", lb); fclose(lf); }
+            if (lf) { if (fgets(g_logbuf, sizeof(g_logbuf), lf)) printf("%s", g_logbuf); fclose(lf); }
             printf("\n");
         }
         if (curl_split(g_curl_args, "LOGINBODY.JSON", "LOGINSTATUS.TXT") != 0) {
@@ -286,7 +286,7 @@ int main(void) {
         printf("Auth status: %s\n", g_status);
         if (check_status(g_status, "login") != 0) {
             FILE *lf = fopen("LOGINBODY.JSON", "r");
-            if (lf) { char lb[512]; if (fgets(lb, sizeof(lb), lf)) printf("Response body: %s\n", lb); fclose(lf); }
+            if (lf) { if (fgets(g_logbuf, sizeof(g_logbuf), lf)) printf("%s", g_logbuf); fclose(lf); }
             cleanup(); return 1;
         }
         run("jget token < LOGINBODY.JSON > TOKEN.TXT");
