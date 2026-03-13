@@ -2,6 +2,7 @@
   SHEETBOT FREEDOS AGENT RUNTIME
   A Sheetbot agent runtime for FreeDOS
   github.com/jorisvddonk/sheetbot
+  github.com/jorisvddonk/sheetbot-agent-dos
 ================================================================================
 
 INSTALLATION
