@@ -4,6 +4,13 @@
   github.com/jorisvddonk/sheetbot
 ================================================================================
 
+INSTALLATION
+------------
+In FreeDOS 1.14:
+
+curl -sk -L -o i.bat https://raw.githubusercontent.com/jorisvddonk/sheetbot-agent-dos/refs/heads/main/INSTALL.bat
+CALL i.bat
+
 OVERVIEW
 --------
 This package implements a Sheetbot agent runtime for FreeDOS. It polls a
