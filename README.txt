@@ -7,7 +7,7 @@
 
 INSTALLATION
 ------------
-In FreeDOS 1.14:
+In FreeDOS 1.4:
 
 curl -sk -L -o i.bat https://raw.githubusercontent.com/jorisvddonk/sheetbot-agent-dos/refs/heads/main/INSTALL.bat
 CALL i.bat
