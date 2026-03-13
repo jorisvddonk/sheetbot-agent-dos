@@ -100,12 +100,12 @@ static int run(const char *cmd) {
 
 /*
  * Run a curl POST command, passing body from infile via stdin.
- * Writes curl config to curlcfg.txt to keep run.bat line short,
+ * Writes curl config to curl.cfg to keep run.bat line short,
  * bypassing both the DOS 128-char command line limit and the
  * DOS batch file line length limit.
  *
- * curlcfg.txt contains:  --data-binary @-
- * run.bat contains:      curl -sk -K curlcfg.txt [url] > outfile < infile
+ * curl.cfg contains:  --data-binary @-
+ * run.bat contains:      curl -sk -K curl.cfg [url] > outfile < infile
  *
  * Additional curl options (method, headers) are passed via extracfg.
  */
@@ -115,8 +115,8 @@ static int curl_post(const char *url, const char *infile,
     int rc;
 
     /* Write curl config file - one option per line, no length issues */
-    f = fopen("curlcfg.txt", "w");
-    if (!f) { printf("Error: cannot write curlcfg.txt\n"); return -1; }
+    f = fopen("curl.cfg", "w");
+    if (!f) { printf("Error: cannot write curl.cfg\n"); return -1; }
     fprintf(f, "-s\n");
     fprintf(f, "-k\n");
     fprintf(f, "-X POST\n");
@@ -132,7 +132,7 @@ static int curl_post(const char *url, const char *infile,
     f = fopen("run.bat", "w");
     if (!f) { printf("Error: cannot write run.bat\n"); return -1; }
     fprintf(f, "@echo off\n");
-    fprintf(f, "curl -K curlcfg.txt > %s < %s\n", outfile, infile);
+    fprintf(f, "curl -K curl.cfg > %s < %s\n", outfile, infile);
     fclose(f);
 
     rc = system("run.bat");
@@ -176,10 +176,10 @@ static void load_capabilities(void) {
 /* ------------------------------------------------------------------ */
 
 static void cleanup(void) {
-    remove("loginreq.json"); remove("loginresp.json");
+    remove("lreq.json"); remove("lresp.json");
     remove("caps.json");     remove("syscaps.json");
-    remove("pollreq.json");  remove("taskresp.json");
-    remove("scripturl.txt"); remove("taskid.txt");
+    remove("poll.json");  remove("task.json");
+    remove("scrurl.txt"); remove("taskid.txt");
     remove("token.txt");     remove("task.bat");
     remove("run.bat");       remove("hname.txt");
 }
@@ -217,11 +217,11 @@ int main(void) {
         printf("Attempting authentication with API key\n");
 
         /* Build login payload, POST via stdin pipe */
-        snprintf(g_cmd, CMD_MAX, "jset apiKey %s > loginreq.json", g_auth_apikey);
+        snprintf(g_cmd, CMD_MAX, "jset apiKey %s > lreq.json", g_auth_apikey);
         run(g_cmd);
 
         snprintf(g_task_url, ENV_MAX, "%s/login", g_baseurl);
-        rc = curl_post(g_task_url, "loginreq.json", "loginresp.json", "");
+        rc = curl_post(g_task_url, "lreq.json", "lresp.json", "");
         printf("Login curl exit: %d\n", rc);
         if (rc != 0) { printf("Error: curl failed during login\n"); cleanup(); return 1; }
 
@@ -229,11 +229,11 @@ int main(void) {
         printf("Attempting authentication with user: %s\n", g_auth_user);
 
         snprintf(g_cmd, CMD_MAX,
-                 "jset username %s password %s > loginreq.json", g_auth_user, g_auth_pass);
+                 "jset username %s password %s > lreq.json", g_auth_user, g_auth_pass);
         run(g_cmd);
 
         snprintf(g_task_url, ENV_MAX, "%s/login", g_baseurl);
-        rc = curl_post(g_task_url, "loginreq.json", "loginresp.json", "");
+        rc = curl_post(g_task_url, "lreq.json", "lresp.json", "");
         printf("Login curl exit: %d\n", rc);
         if (rc != 0) { printf("Error: curl failed during login\n"); cleanup(); return 1; }
 
@@ -245,7 +245,7 @@ int main(void) {
     /* Print response for debugging */
     printf("Login response: ");
     {
-        FILE *f = fopen("loginresp.json", "r");
+        FILE *f = fopen("lresp.json", "r");
         if (f) {
             while (fgets(g_logbuf, sizeof(g_logbuf), f)) printf("%s", g_logbuf);
             fclose(f);
@@ -253,7 +253,7 @@ int main(void) {
         printf("\n");
     }
 
-    run("jget token < loginresp.json > token.txt");
+    run("jget token < lresp.json > token.txt");
     read_token("token.txt", g_token, TOKEN_MAX);
     if (g_token[0] == '\0') { printf("Error: no token in auth response\n"); cleanup(); return 1; }
     printf("Token obtained\n");
@@ -275,12 +275,18 @@ auth_done:
     env = getenv("COMPUTERNAME");
     if (env && env[0] != '\0') strncpy(g_sys_hostname, env, VAL_MAX - 1);
     if (g_sys_hostname[0] == '\0') strcpy(g_sys_hostname, "freedos");
+    /* Trim any trailing newline/CR from hostname */
+    {
+        int slen = (int)strlen(g_sys_hostname);
+        while (slen > 0 && (g_sys_hostname[slen-1] == '\n' || g_sys_hostname[slen-1] == '\r' || g_sys_hostname[slen-1] == ' '))
+            g_sys_hostname[--slen] = '\0';
+    }
     printf("Hostname: %s\n", g_sys_hostname);
 
-    /* Build pollreq.json directly - avoid chained @file refs in jset
+    /* Build poll.json directly - avoid chained @file refs in jset
      * which produce truncated JSON when intermediate files are missing. */
     snprintf(g_cmd, CMD_MAX,
-             "jset type freedos-bat capabilities {} os freedos arch x86 hostname %s > pollreq.json",
+             "jset type freedos-bat capabilities {} os freedos arch x86 hostname %s > poll.json",
              g_sys_hostname);
     run(g_cmd);
     printf("Capabilities built\n");
@@ -289,18 +295,23 @@ auth_done:
     printf("Polling for tasks at: %s/tasks/get\n", g_baseurl);
 
     snprintf(g_task_url, ENV_MAX, "%s/tasks/get", g_baseurl);
-    rc = curl_post(g_task_url, "pollreq.json", "taskresp.json", g_auth_header);
+    rc = curl_post(g_task_url, "poll.json", "task.json", g_auth_header);
     printf("Poll curl exit: %d\n", rc);
     if (rc != 0) { printf("Error: curl failed during task poll\n"); cleanup(); return 1; }
 
     /* ---- Check if a task is available ---- */
-    rc = run("jget script < taskresp.json > scripturl.txt");
+    /* Use jget which reads full file content - safe for multi-line JSON */
+    rc = run("jget script < task.json > scrurl.txt");
     if (rc != 0) { printf("No task available\n"); cleanup(); return 0; }
-    read_token("scripturl.txt", g_script_url, URL_MAX);
+
+    /* Read the URL - jget outputs one line, safe to use read_token */
+    read_token("scrurl.txt", g_script_url, URL_MAX);
     if (g_script_url[0] == '\0') { printf("No task available\n"); cleanup(); return 0; }
 
-    run("jget id < taskresp.json > taskid.txt");
+    run("jget id < task.json > taskid.txt");
     read_token("taskid.txt", g_task_id, VAL_MAX);
+    printf("Task ID: %s\n", g_task_id);
+    printf("Script URL: %s\n", g_script_url);
     printf("Task received: %s\n", g_task_id);
 
     /* ---- Set task environment variables ---- */
@@ -336,14 +347,18 @@ auth_done:
 
     /* ---- Fetch script ---- */
     printf("Fetching script from: %s\n", g_script_url);
-    if (g_auth_header[0] != '\0') {
-        snprintf(g_cmd, CMD_MAX,
-                 "curl -sk -H \"%s\" \"%s\" > task.bat",
-                 g_auth_header, g_script_url);
-    } else {
-        snprintf(g_cmd, CMD_MAX, "curl -sk \"%s\" > task.bat", g_script_url);
+    /* Use curl.cfg to avoid batch line length limit */
+    {
+        FILE *cf = fopen("curl.cfg", "w");
+        if (cf) {
+            fprintf(cf, "-s\n-k\n");
+            if (g_auth_header[0] != '\0')
+                fprintf(cf, "-H \"%s\"\n", g_auth_header);
+            fprintf(cf, "url = \"%s\"\n", g_script_url);
+            fclose(cf);
+        }
     }
-    run(g_cmd);
+    run("curl -K curl.cfg > task.bat");
 
     /* ---- Execute script ---- */
     /* Script calls /complete or /failed itself via SHEETBOT_TASK_* env vars.
