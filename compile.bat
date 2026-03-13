@@ -28,14 +28,29 @@ WCL -L=DOS jset.c -FE=jset.exe
 IF ERRORLEVEL 1 GOTO FAIL_JSET
 
 ECHO.
+ECHO Compiling STRIPNL.C...
+WCL -L=DOS stripnl.c -FE=stripnl.exe
+IF ERRORLEVEL 1 GOTO FAIL_STRIPNL
+
+ECHO.
+ECHO Compiling JSONTXT.C...
+WCL -L=DOS jsontxt.c -FE=jsontxt.exe
+IF ERRORLEVEL 1 GOTO FAIL_JSONTXT
+
+ECHO.
 ECHO Compiling AGENT.C...
 WCL -L=DOS agent.c -FE=agent.exe
 IF ERRORLEVEL 1 GOTO FAIL_AGENT
 
 ECHO.
+ECHO Compiling B64ENC.C...
+WCL -L=DOS b64enc.c -FE=b64enc.exe
+IF ERRORLEVEL 1 GOTO FAIL_B64ENC
+
+ECHO.
 ECHO ============================================================
 ECHO  All files compiled successfully!
-ECHO  Binaries: C:\JGET.EXE, C:\JSET.EXE, C:\AGENT.EXE
+ECHO  Binaries: JGET.EXE JSET.EXE STRIPNL.EXE JSONTXT.EXE AGENT.EXE B64ENC.EXE
 ECHO ============================================================
 GOTO END
 
@@ -47,8 +62,20 @@ GOTO END
 ECHO ERROR: Failed to compile JSET.C
 GOTO END
 
+:FAIL_STRIPNL
+ECHO ERROR: Failed to compile STRIPNL.C
+GOTO END
+
+:FAIL_JSONTXT
+ECHO ERROR: Failed to compile JSONTXT.C
+GOTO END
+
 :FAIL_AGENT
 ECHO ERROR: Failed to compile AGENT.C
+GOTO END
+
+:FAIL_B64ENC
+ECHO ERROR: Failed to compile B64ENC.C
 GOTO END
 
 :END
