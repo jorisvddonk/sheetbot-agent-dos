@@ -38,19 +38,24 @@ WCL -L=DOS jsontxt.c -FE=jsontxt.exe
 IF ERRORLEVEL 1 GOTO FAIL_JSONTXT
 
 ECHO.
-ECHO Compiling AGENT.C...
-WCL -L=DOS agent.c -FE=agent.exe
-IF ERRORLEVEL 1 GOTO FAIL_AGENT
-
-ECHO.
 ECHO Compiling B64ENC.C...
 WCL -L=DOS b64enc.c -FE=b64enc.exe
 IF ERRORLEVEL 1 GOTO FAIL_B64ENC
 
 ECHO.
+ECHO Compiling SETVAR.C...
+WCL -L=DOS setvar.c -FE=setvar.exe
+IF ERRORLEVEL 1 GOTO FAIL_SETVAR
+
+ECHO.
+ECHO Compiling AGENT.C...
+WCL -L=DOS agent.c -FE=agent.exe
+IF ERRORLEVEL 1 GOTO FAIL_AGENT
+
+ECHO.
 ECHO ============================================================
 ECHO  All files compiled successfully!
-ECHO  Binaries: JGET.EXE JSET.EXE STRIPNL.EXE JSONTXT.EXE AGENT.EXE B64ENC.EXE
+ECHO  Binaries: JGET.EXE JSET.EXE STRIPNL.EXE JSONTXT.EXE AGENT.EXE SETVAR.EXE B64ENC.EXE
 ECHO ============================================================
 GOTO END
 
@@ -64,6 +69,10 @@ GOTO END
 
 :FAIL_STRIPNL
 ECHO ERROR: Failed to compile STRIPNL.C
+GOTO END
+
+:FAIL_SETVAR
+ECHO ERROR: Failed to compile SETVAR.C
 GOTO END
 
 :FAIL_JSONTXT
