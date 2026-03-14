@@ -38,30 +38,47 @@ static int json_get_string(const char *key, const char *json, char *out, int out
         if (*p != ':') continue;
         p++;
         while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
-        if (*p != '"') continue;
-        p++;
-        i = 0;
-        while (*p && i < outlen - 1) {
-            if (*p == '\\' && *(p + 1)) {
-                p++;
-                switch (*p) {
-                    case '"':  out[i++] = '"';  break;
-                    case '\\': out[i++] = '\\'; break;
-                    case '/':  out[i++] = '/';  break;
-                    case 'n':  out[i++] = '\n'; break;
-                    case 'r':  out[i++] = '\r'; break;
-                    case 't':  out[i++] = '\t'; break;
-                    default:   out[i++] = *p;   break;
+        if (*p == '"') {
+            p++;
+            i = 0;
+            while (*p && i < outlen - 1) {
+                if (*p == '\\' && *(p + 1)) {
+                    p++;
+                    switch (*p) {
+                        case '"':  out[i++] = '"';  break;
+                        case '\\': out[i++] = '\\'; break;
+                        case '/':  out[i++] = '/';  break;
+                        case 'n':  out[i++] = '\n'; break;
+                        case 'r':  out[i++] = '\r'; break;
+                        case 't':  out[i++] = '\t'; break;
+                        default:   out[i++] = *p;   break;
+                    }
+                    p++;
+                } else if (*p == '"') {
+                    break;
+                } else {
+                    out[i++] = *p++;
                 }
-                p++;
-            } else if (*p == '"') {
-                break;
-            } else {
+            }
+            out[i] = '\0';
+            return 1;
+        } else if (*p == '-' || (*p >= '0' && *p <= '9')) {
+            i = 0;
+            while ((*p == '-' || (*p >= '0' && *p <= '9') || *p == '.') && i < outlen - 1) {
                 out[i++] = *p++;
             }
+            out[i] = '\0';
+            return 1;
+        } else if (strncmp(p, "true", 4) == 0) {
+            strcpy(out, "true");
+            return 1;
+        } else if (strncmp(p, "false", 5) == 0) {
+            strcpy(out, "false");
+            return 1;
+        } else if (strncmp(p, "null", 4) == 0) {
+            strcpy(out, "null");
+            return 1;
         }
-        out[i] = '\0';
-        return 1;
     }
     return 0;
 }
